@@ -1,0 +1,25 @@
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: shellcheck admin-kit/*.sh developer-kit/*.sh developer-kit/templates/*.sh
+      - name: Bash and PowerShell developer scripts produce the same files
+        run: |
+          git init -q /tmp/bash-repo && bash developer-kit/setup-cicd.sh demo /tmp/bash-repo
+          git init -q /tmp/pwsh-repo && pwsh -File developer-kit/setup-cicd.ps1 -Project demo -RepoDir /tmp/pwsh-repo
+          diff -r --exclude=.git /tmp/bash-repo /tmp/pwsh-repo
+          ! grep -q __PROJECT__ /tmp/bash-repo/.github/workflows/deploy.yml
